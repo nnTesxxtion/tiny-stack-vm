@@ -2,10 +2,10 @@
 // (generator/subject/ISA.md), following the reference VM's semantics rule for rule — wrapping 32-bit
 // arithmetic with Math.imul, signed and unsigned division kept apart, shift counts masked to 5 bits,
 // every trap with its own exit code, and the step and output limits enforced in the reference's order.
+// PRINT writes its decimal digits straight into the output buffer: String() of a 32-bit integer is
+// plain ASCII, so the bytes are the char codes, with no encoder pass in between.
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-
-const enc = new TextEncoder();
 
 // [immediate bytes, pops, pushes] per opcode byte, as the ISA's table gives them.
 const T: { [op: number]: [number, number, number] } = {
@@ -144,11 +144,10 @@ function run(p: Uint8Array, inp: Uint8Array): { out: Uint8Array; code: number } 
         break;
       }
       case 0x50: {
-        const bytes = enc.encode(String(D[sp - 1]));
-        if (olen + bytes.length > 65536) return done(11);
+        const s = String(D[sp - 1]);
+        if (olen + s.length > 65536) return done(11);
         sp--;
-        out.set(bytes, olen);
-        olen += bytes.length;
+        for (let i = 0; i < s.length; i++) out[olen++] = s.charCodeAt(i);
         break;
       }
       case 0x51:
